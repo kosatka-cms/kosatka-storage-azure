@@ -1,0 +1,13 @@
+# Azure Blob Storage (the Azurite emulator) for the integration tests (go
+# test -tags integration): scripts/test_integration.sh starts it, runs the
+# tests and stops it. The port is offset so it doesn't clash with a local
+# emulator.
+services:
+  azure:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck", "--inMemoryPersistence"]
+    ports: ["31000:10000"]
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 10000"]
+      interval: 2s
+      retries: 60

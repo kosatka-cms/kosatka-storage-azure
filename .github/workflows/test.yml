@@ -1,0 +1,30 @@
+# The storage's checks: vet and the unit tests; the integration tests on
+# Azure Blob Storage's emulator (Azurite, as scripts/test_integration.sh
+# starts it: its command isn't a service container's).
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      KOSATKA_TEST_AZURE: http://127.0.0.1:31000/devstoreaccount1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      # Known vulnerabilities in the Go version and the dependencies the
+      # code reaches, as the engine's CI.
+      - run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+      - run: go test ./...
+      - run: docker compose -f docker-compose.test.yml up -d --wait
+      - run: go test -tags integration -count=1 ./...
+      - name: The emulator's log
+        if: failure()
+        run: docker compose -f docker-compose.test.yml logs --no-color azure | tail -100
